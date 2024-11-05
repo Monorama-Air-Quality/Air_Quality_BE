@@ -1,74 +1,1 @@
-package com.sungjin.airquailitymonitordemo.handler;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sungjin.airquailitymonitordemo.entity.SensorData;
-import com.sungjin.airquailitymonitordemo.dto.request.SensorDataRequestDto;
-import com.sungjin.airquailitymonitordemo.service.SensorDataService;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
-
-import java.io.IOException;
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-@Component
-@Slf4j
-public class WebSocketHandler extends TextWebSocketHandler {
-
-    @Autowired
-    private SensorDataService sensorDataService;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();
-
-    @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
-        String sessionId = session.getId();
-        sessions.put(sessionId, session);
-        log.info("New WebSocket connection established: {}", sessionId);
-    }
-
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) {
-        try {
-            String payload = message.getPayload();
-            SensorDataRequestDto sensorDataDto = objectMapper.readValue(payload, SensorDataRequestDto.class);
-
-            // 센서 데이터 처리
-            sensorDataService.processSensorData(sensorDataDto);
-
-            // 응답 전송
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(
-                    Map.of("status", "success", "timestamp", LocalDateTime.now())
-            )));
-
-        } catch (Exception e) {
-            log.error("Error handling message", e);
-            try {
-                session.sendMessage(new TextMessage(objectMapper.writeValueAsString(
-                        Map.of("status", "error", "message", e.getMessage())
-                )));
-            } catch (IOException ex) {
-                log.error("Error sending error message", ex);
-            }
-        }
-    }
-
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        String sessionId = session.getId();
-        sessions.remove(sessionId);
-        log.info("WebSocket connection closed: {} with status: {}", sessionId, status);
-    }
-
-    @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) {
-        log.error("Transport error occurred: {}", exception.getMessage());
-    }
-}
+package com.sungjin.airquailitymonitordemo.handler;import com.fasterxml.jackson.databind.JsonNode;import com.fasterxml.jackson.databind.ObjectMapper;import com.sungjin.airquailitymonitordemo.dto.request.SensorDataRequestDto;import com.sungjin.airquailitymonitordemo.entity.SensorData;import com.sungjin.airquailitymonitordemo.service.SensorDataService;import lombok.RequiredArgsConstructor;import lombok.extern.slf4j.Slf4j;import org.springframework.stereotype.Component;import org.springframework.web.socket.CloseStatus;import org.springframework.web.socket.TextMessage;import org.springframework.web.socket.WebSocketSession;import org.springframework.web.socket.handler.TextWebSocketHandler;import java.io.IOException;import java.time.Instant;import java.time.LocalDateTime;import java.time.ZoneId;import java.util.Map;import java.util.concurrent.ConcurrentHashMap;@Component@Slf4j@RequiredArgsConstructorpublic class WebSocketHandler extends TextWebSocketHandler {    private final SensorDataService sensorDataService;    private final ObjectMapper objectMapper;    private final Map<String, WebSocketSession> sessions = new ConcurrentHashMap<>();    private final Map<String, String> sessionDeviceMap = new ConcurrentHashMap<>();  // 세션별 디바이스 ID 저장    @Override    protected void handleTextMessage(WebSocketSession session, TextMessage message) {        String sessionId = session.getId();        try {            String payload = message.getPayload();            log.info("Received message from session {}: {}", sessionId, payload);            JsonNode jsonNode = objectMapper.readTree(payload);            String type = jsonNode.get("type").asText();            if ("SUBSCRIBE".equals(type)) {                handleSubscribe(session, jsonNode);            } else if ("SENSOR_DATA".equals(type)) {                handleSensorData(session, jsonNode.get("payload"));            } else {                log.warn("Unknown message type: {}", type);            }        } catch (Exception e) {            log.error("Error handling message from session {}: {}", sessionId, e.getMessage(), e);        }    }    private void handleSensorData(WebSocketSession session, JsonNode payload) throws IOException {        JsonNode data = payload.get("data");        String deviceId = sessionDeviceMap.get(session.getId());        if (deviceId == null) {            log.warn("No device ID mapped for session: {}", session.getId());            return;        }        try {            // UTC 타임스탬프를 LocalDateTime으로 변환            LocalDateTime timestamp = Instant.parse(payload.get("timestamp").asText())                    .atZone(ZoneId.systemDefault())                    .toLocalDateTime();            // 위도, 경도 값 추출            Double latitude = payload.has("latitude") ? payload.get("latitude").asDouble() : null;            Double longitude = payload.has("longitude") ? payload.get("longitude").asDouble() : null;            log.info("Received location data - latitude: {}, longitude: {}", latitude, longitude);            // 받은 JSON 구조에 맞게 DTO 생성            SensorDataRequestDto sensorDataDto = SensorDataRequestDto.builder()                    .deviceId(deviceId)                    .timestamp(timestamp)                    .pm25Value(data.get("pm25").get("value").asDouble())                    .pm25Level(data.get("pm25").get("level").asInt())                    .pm10Value(data.get("pm10").get("value").asDouble())                    .pm10Level(data.get("pm10").get("level").asInt())                    .temperature(data.get("temperature").get("value").asDouble())                    .temperatureLevel(data.get("temperature").get("level").asInt())                    .humidity(data.get("humidity").get("value").asDouble())                    .humidityLevel(data.get("humidity").get("level").asInt())                    .co2Value(data.get("co2").get("value").asDouble())                    .co2Level(data.get("co2").get("level").asInt())                    .vocValue(data.get("voc").get("value").asDouble())                    .vocLevel(data.get("voc").get("level").asInt())                    .latitude(latitude)   // 위도 설정                    .longitude(longitude) // 경도 설정                    .rawData(convertRawData(data.get("_raw")))                    .build();            log.info("Created DTO with location - latitude: {}, longitude: {}",                    sensorDataDto.latitude(), sensorDataDto.longitude());            SensorData processedData = sensorDataService.processSensorData(sensorDataDto);            if (processedData != null) {                String response = objectMapper.writeValueAsString(Map.of(                        "status", "success",                        "data", processedData,                        "timestamp", LocalDateTime.now()                ));                session.sendMessage(new TextMessage(response));                log.info("Successfully processed and stored sensor data for device: {}", deviceId);            } else {                log.error("Failed to process sensor data for device: {}", deviceId);                throw new RuntimeException("Failed to process sensor data");            }        } catch (Exception e) {            log.error("Error processing sensor data for device {}: {}", deviceId, e.getMessage(), e);            throw e;        }    }    private byte[] convertRawData(JsonNode rawArray) {        if (rawArray == null || !rawArray.isArray()) {            return new byte[0];        }        byte[] rawData = new byte[rawArray.size()];        for (int i = 0; i < rawArray.size(); i++) {            rawData[i] = (byte) rawArray.get(i).asInt();        }        return rawData;    }    private void handleSubscribe(WebSocketSession session, JsonNode message) throws IOException {        JsonNode payload = message.get("payload");        if (payload != null && payload.has("topic")) {            String topic = payload.get("topic").asText();            // topic에서 deviceId 추출 (예: "device/NzcBrkdRvtKaiI8Tm/JbFA==" -> "NzcBrkdRvtKaiI8Tm/JbFA==")            String deviceId = topic.substring(topic.lastIndexOf('/') + 1);            sessionDeviceMap.put(session.getId(), deviceId);  // 세션과 디바이스 ID 매핑 저장            log.info("Session {} subscribed to topic: {} with deviceId: {}",                    session.getId(), topic, deviceId);            String response = objectMapper.writeValueAsString(Map.of(                    "status", "success",                    "message", "Subscribed to " + topic,                    "timestamp", LocalDateTime.now()            ));            session.sendMessage(new TextMessage(response));        }    }    @Override    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {        log.info("WebSocket Connection Closed - Session ID: {}, Status: {}",                session.getId(), status);        sessions.remove(session.getId());        sessionDeviceMap.remove(session.getId());  // 세션 매핑 제거    }    @Override    public void afterConnectionEstablished(WebSocketSession session) {        log.info("WebSocket Connection Established - Session ID: {}", session.getId());        log.info("Remote Address: {}", session.getRemoteAddress());        log.info("URI: {}", session.getUri());        sessions.put(session.getId(), session);    }    @Override    public void handleTransportError(WebSocketSession session, Throwable exception) {        log.error("Transport error occurred on session {}", session.getId(), exception);    }}

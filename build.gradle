@@ -37,6 +37,9 @@ dependencies {
 
     implementation 'com.h2database:h2'
 
+    // env
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
     // Redis
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 

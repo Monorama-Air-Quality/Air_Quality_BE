@@ -1,31 +1,41 @@
 package com.sungjin.airquailitymonitordemo.entity;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.sungjin.airquailitymonitordemo.utils.ByteArrayJsonDeserializer;
+import com.sungjin.airquailitymonitordemo.utils.ByteArrayJsonSerializer;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import lombok.*;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "sensor_data")
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SensorData {
+@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class SensorData implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     private String deviceId;
-    
+
     @Column(columnDefinition = "TIMESTAMP")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     private LocalDateTime timestamp;
-    
+
     private Double pm25Value;
     private Integer pm25Level;
     private Double pm10Value;
@@ -40,7 +50,9 @@ public class SensorData {
     private Integer vocLevel;
     private Double latitude;
     private Double longitude;
-    
+
     @Lob
+    @JsonSerialize(using = ByteArrayJsonSerializer.class)
+    @JsonDeserialize(using = ByteArrayJsonDeserializer.class)
     private byte[] rawData;
-} 
+}
