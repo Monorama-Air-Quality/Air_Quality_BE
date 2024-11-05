@@ -29,9 +29,22 @@ spring:
     redis:
       port: ${REDIS_PORT}
       host: ${REDIS_HOST}
+      password: ${REDIS_PASSWORD}
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
+
+kafka:
+  topic:
+    sensor-data: air-quality-sensor-data
+    device-status: air-quality-device-status
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT}
 
 logging:
   level:

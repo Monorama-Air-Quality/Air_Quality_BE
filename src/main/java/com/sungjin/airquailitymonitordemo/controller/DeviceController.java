@@ -15,7 +15,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -28,7 +27,6 @@ public class DeviceController {
 
     private final SensorDataService sensorDataService;
     private final DeviceStatusService deviceStatusService;
-    private final KafkaTemplate<String, SensorData> kafkaTemplate;
 
     @PostMapping("/data")
     public ResponseEntity<ApiResponseDto> postData(@RequestBody SensorDataRequestDto request) {
