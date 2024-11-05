@@ -62,27 +62,6 @@ public class RedisConfig {
         return factory;
     }
 
-//    @Bean
-//    public ObjectMapper redisObjectMapper() {
-//        ObjectMapper mapper = new ObjectMapper();
-//
-//        // JavaTimeModule 등록
-//        mapper.registerModule(new JavaTimeModule());
-//
-//        // 날짜/시간 포맷 설정
-//        mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-//        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-//        mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
-//
-//        // 타입 정보를 포함하도록 설정
-//        mapper.activateDefaultTyping(
-//                mapper.getPolymorphicTypeValidator(),
-//                ObjectMapper.DefaultTyping.NON_FINAL,
-//                JsonTypeInfo.As.PROPERTY
-//        );
-//        return mapper;
-//    }
-
     private <T> RedisTemplate<String, T> createRedisTemplate(RedisConnectionFactory connectionFactory, Class<T> type) {
         RedisTemplate<String, T> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
