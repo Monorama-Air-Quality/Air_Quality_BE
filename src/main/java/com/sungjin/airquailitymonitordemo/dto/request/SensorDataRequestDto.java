@@ -2,11 +2,16 @@ package com.sungjin.airquailitymonitordemo.dto.request;
 
 import java.time.LocalDateTime;
 
+
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
+import lombok.Builder;
+
+@Builder
 public record SensorDataRequestDto(
     String deviceId,
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     LocalDateTime timestamp,
     Double pm25Value,
     Integer pm25Level,
@@ -23,4 +28,4 @@ public record SensorDataRequestDto(
     Double latitude,
     Double longitude,
     byte[] rawData
-) {} 
+) {}
