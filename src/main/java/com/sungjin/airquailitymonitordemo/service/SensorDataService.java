@@ -28,7 +28,6 @@ public class SensorDataService {
     private final RedisTemplate<String, SensorData> redisTemplate;
     private final SensorDataRepository sensorDataRepository;
     private final KafkaTemplate<String, SensorData> kafkaTemplate;
-    private final RedisTemplate<String, SensorData> sensorDataRedisTemplate;
 
 
     @Value("${kafka.topic.sensor-data}")
@@ -96,12 +95,12 @@ public class SensorDataService {
 
         try {
             // Redis에 저장 (만료시간 24시간)
-            boolean result = Boolean.TRUE.equals(sensorDataRedisTemplate.opsForValue()
+            boolean result = Boolean.TRUE.equals(redisTemplate.opsForValue()
                     .setIfAbsent(redisKey, data, 24, TimeUnit.HOURS));
 
             // latest 키도 함께 업데이트
             String latestKey = String.format("device:%s:latest", deviceId);
-            sensorDataRedisTemplate.opsForValue()
+            redisTemplate.opsForValue()
                     .set(latestKey, data, 24, TimeUnit.HOURS);
 
             if (result) {
