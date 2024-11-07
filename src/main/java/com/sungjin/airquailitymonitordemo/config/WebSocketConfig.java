@@ -1,6 +1,7 @@
 package com.sungjin.airquailitymonitordemo.config;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -14,10 +15,13 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Autowired
     private WebSocketHandler webSocketHandler;
 
+    @Value("${websocket.allowed-origins}")
+    private String allowedOrigins;
+
+
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(webSocketHandler, "/ws")
-                .setAllowedOriginPatterns("http://localhost:3000")  // 특정 origin 명시
-                .setAllowedOrigins("http://localhost:3000");         // 특정 origin 명시
+                .setAllowedOrigins(allowedOrigins);
     }
 }

@@ -1,23 +1,11 @@
 spring:
-  kafka:
-    bootstrap-servers: ${KAFKA_SERVERS}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-    consumer:
-      group-id: ${KAFKA_GROUP_ID}
-      auto-offset-reset: latest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: "*"
-
-  datasource:
-    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}
-    username: ${MYSQL_USERNAME}
-    password: ${MYSQL_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
+  profiles:
+    active: local
+---
+spring:
+  config:
+    activate:
+      on-profile: common
   jpa:
     hibernate:
       ddl-auto: update
@@ -25,6 +13,45 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
+kafka:
+  topic:
+    sensor-data: air-quality-sensor-data
+    device-status: air-quality-device-status
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.socket: DEBUG
+    com.your.package: DEBUG
+
+---
+# 로컬 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: local
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS}
+    consumer:
+      group-id: ${KAFKA_GROUP_ID}
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
   data:
     redis:
       port: ${REDIS_PORT}
@@ -38,16 +65,44 @@ spring:
           min-idle: 0
           max-wait: -1ms
 
-kafka:
-  topic:
-    sensor-data: air-quality-sensor-data
-    device-status: air-quality-device-status
+server:
+  port: ${SERVER_PORT}
+
+websocket:
+  allowed-origins: http://localhost:3000
+
+---
+# 운영 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: prod
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS}
+    consumer:
+      group-id: ${KAFKA_GROUP_ID}
+
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/${MYSQL_DB}
+    username: ${MYSQL_USERNAME}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      port: ${REDIS_PORT}
+      host: ${REDIS_HOST}
+      password: ${REDIS_PASSWORD}
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1ms
 
 server:
   port: ${SERVER_PORT}
 
-logging:
-  level:
-    org.springframework.web: DEBUG
-    org.springframework.web.socket: DEBUG
-    com.your.package: DEBUG
+websocket:
+  allowed-origins: https://air.monomate.kr
