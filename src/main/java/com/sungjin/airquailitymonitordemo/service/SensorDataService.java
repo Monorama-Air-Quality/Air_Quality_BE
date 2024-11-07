@@ -35,9 +35,10 @@ public class SensorDataService {
     private String topicName;
 
     // Redis의 데이터를 mysql에 저장
-    @Scheduled(fixedRate = 5000)  // 5초마다 실행
+    @Scheduled(fixedRate = 5000)
     public void processRedisData() {
-        String pattern = "device:*:latest";
+        // latest가 아닌 모든 센서 데이터를 가져옴
+        String pattern = "device:*:[0-9]*";  // timestamp 패턴
         Set<String> keys = redisTemplate.keys(pattern);
 
         if (keys != null) {
@@ -45,17 +46,12 @@ public class SensorDataService {
                 SensorData data = redisTemplate.opsForValue().get(key);
                 if (data != null) {
                     try {
-                        // MySQL에 저장
                         sensorDataRepository.save(data);
-
-                        // Kafka로 전송
                         sendToKafka(data);
-
-                        // TTL 갱신 (데이터 삭제하지 않음)
-                        //redisTemplate.expire(key, 24, TimeUnit.HOURS);
                         redisTemplate.delete(key);
 
-                        log.info("Processed data from Redis: deviceId={}", data.getDeviceId());
+                        log.info("Processed data from Redis: deviceId={}, timestamp={}",
+                                data.getDeviceId(), data.getTimestamp());
                     } catch (Exception e) {
                         log.error("Error processing data from Redis: {}", e.getMessage(), e);
                     }
@@ -64,57 +60,55 @@ public class SensorDataService {
         }
     }
 
+    /**
+     * 센서 데이터 처리
+     * @param requestDto 센서 데이터 요청 DTO
+     * @return 센서 데이터
+     */
     public SensorData processSensorData(SensorDataRequestDto requestDto) {
         SensorData sensorData = convertToEntity(requestDto);
 
-        // MySQL 저장
-        try {
-            sensorData = sensorDataRepository.save(sensorData);
-            log.info("Received sensor data: {}", sensorData);
-        } catch (Exception e) {
-            log.error("Error processing sensor data MySQL", e);
-        }
-
-        // Redis 캐시
+        // Redis에만 캐시
         try {
             cacheLatestData(sensorData);
-            log.info("Successfully processed and cached sensor data for device: {}", sensorData.getDeviceId());
+            log.info("Successfully cached sensor data for device: {}", sensorData.getDeviceId());
         } catch (Exception e) {
             log.error("Error caching sensor data for device: {}", sensorData.getDeviceId(), e);
         }
 
         return sensorData;
     }
+
+    /**
+     * Redis에 최신 데이터 캐시 (저장)
+     * @param data 센서 데이터
+     */
     private void cacheLatestData(SensorData data) {
-        if (data.getDeviceId() == null) {
+        String deviceId = data.getDeviceId();
+        if (deviceId == null) {
             log.warn("DeviceId is null, skipping Redis cache");
             return;
         }
 
-        String redisKey = "device:" + data.getDeviceId() + ":latest";
+        // 타임스탬프를 키에 포함시켜 모든 데이터 보존
+        String redisKey = String.format("device:%s:%s", deviceId,
+                data.getTimestamp().toString());
+
         try {
-            // 테스트 출력
-            log.debug("Caching data - Key: {}, Value: {}", redisKey, data);
-
-            // Redis에 저장 전에 명시적으로 키 삭제
-            sensorDataRedisTemplate.delete(redisKey);
-
-            // 데이터 저장 (만료시간 24시간)
+            // Redis에 저장 (만료시간 24시간)
             boolean result = Boolean.TRUE.equals(sensorDataRedisTemplate.opsForValue()
                     .setIfAbsent(redisKey, data, 24, TimeUnit.HOURS));
 
-            // 저장 결과 확인
+            // latest 키도 함께 업데이트
+            String latestKey = String.format("device:%s:latest", deviceId);
+            sensorDataRedisTemplate.opsForValue()
+                    .set(latestKey, data, 24, TimeUnit.HOURS);
+
             if (result) {
-                log.info("Successfully cached sensor data for device: {}", data.getDeviceId());
-                // 저장된 데이터 확인
-                SensorData cachedData = sensorDataRedisTemplate.opsForValue().get(redisKey);
-                log.info("Cached data verification: {}", cachedData != null ? "success" : "failed");
-            } else {
-                log.warn("Failed to cache sensor data for device: {}", data.getDeviceId());
+                log.info("Successfully cached sensor data for device: {}", deviceId);
             }
         } catch (Exception e) {
-            log.error("Error caching sensor data for device: {} - Error: {}",
-                    data.getDeviceId(), e.getMessage(), e);
+            log.error("Error caching sensor data for device: {}", deviceId, e);
         }
     }
 
