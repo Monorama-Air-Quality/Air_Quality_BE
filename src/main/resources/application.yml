@@ -71,7 +71,7 @@ spring:
 server:
   port: ${SERVER_PORT}
 
-websocket:
+cors:
   allowed-origins: http://localhost:3000
 
 ---
@@ -107,5 +107,5 @@ spring:
 server:
   port: ${SERVER_PORT}
 
-websocket:
+cors:
   allowed-origins: https://air.monomate.kr

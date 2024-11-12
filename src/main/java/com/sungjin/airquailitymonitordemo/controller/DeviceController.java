@@ -1,11 +1,10 @@
 package com.sungjin.airquailitymonitordemo.controller;
 
+import com.sungjin.airquailitymonitordemo.dto.request.DeviceInfoRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataRequestDto;
-import com.sungjin.airquailitymonitordemo.dto.request.DeviceStatusRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.response.ApiResponseDto;
-import com.sungjin.airquailitymonitordemo.entity.DeviceStatus;
 import com.sungjin.airquailitymonitordemo.entity.SensorData;
-import com.sungjin.airquailitymonitordemo.service.DeviceStatusService;
+import com.sungjin.airquailitymonitordemo.service.DeviceService;
 import com.sungjin.airquailitymonitordemo.service.SensorDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +25,7 @@ import java.time.LocalDateTime;
 public class DeviceController {
 
     private final SensorDataService sensorDataService;
-    private final DeviceStatusService deviceStatusService;
+    private final DeviceService deviceService;
 
     @PostMapping("/data")
     public ResponseEntity<ApiResponseDto> postData(@RequestBody SensorDataRequestDto request) {
@@ -83,34 +82,20 @@ public class DeviceController {
         }
     }
 
-    @PutMapping("/{deviceId}/status")
-    public ResponseEntity<ApiResponseDto> updateDeviceStatus(
-            @PathVariable String deviceId,
-            @RequestBody DeviceStatusRequestDto request
-    ) {
+    @PostMapping("/device")
+    public ResponseEntity<ApiResponseDto> saveDeviceInfo(@RequestBody DeviceInfoRequestDto request) {
         try {
-            deviceStatusService.updateDeviceStatus(deviceId, request);
-            return ResponseEntity.ok(new ApiResponseDto("success", "Status updated successfully"));
+            deviceService.upsertDevice(
+                    request.deviceId(),
+                    request.placeType(),
+                    request.floorLevel(),
+                    request.description()
+            );
+            return ResponseEntity.ok(new ApiResponseDto("success", "Device info saved successfully"));
         } catch (Exception e) {
-            log.error("Error updating device status", e);
+            log.error("Error saving device info", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ApiResponseDto("error", "Error updating status: " + e.getMessage()));
-        }
-    }
-
-    @GetMapping("/{deviceId}/status")
-    public ResponseEntity<DeviceStatus> getDeviceStatus(
-            @PathVariable String deviceId
-    ) {
-        try {
-            DeviceStatus status = deviceStatusService.getDeviceStatus(deviceId);
-            if (status == null) {
-                return ResponseEntity.notFound().build();
-            }
-            return ResponseEntity.ok(status);
-        } catch (Exception e) {
-            log.error("Error fetching device status", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+                    .body(new ApiResponseDto("error", "Error saving device info: " + e.getMessage()));
         }
     }
 }

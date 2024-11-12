@@ -16,7 +16,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     private final WebSocketHandler webSocketHandler;
 
-    @Value("${websocket.allowed-origins}")
+    @Value("${cors.allowed-origins}")
     private String allowedOrigins;
 
 

@@ -25,7 +25,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SensorDataService {
 
-    private final RedisTemplate<String, SensorData> redisTemplate;
+    private final RedisTemplate<String, SensorData> sensorDataRedisTemplate;
     private final SensorDataRepository sensorDataRepository;
     private final KafkaTemplate<String, SensorData> kafkaTemplate;
 
@@ -36,26 +36,50 @@ public class SensorDataService {
     // Redis의 데이터를 mysql에 저장
     @Scheduled(fixedRate = 5000)
     public void processRedisData() {
-        // latest가 아닌 모든 센서 데이터를 가져옴
-        String pattern = "device:*:[0-9]*";  // timestamp 패턴
-        Set<String> keys = redisTemplate.keys(pattern);
-
-        if (keys != null) {
-            for (String key : keys) {
-                SensorData data = redisTemplate.opsForValue().get(key);
-                if (data != null) {
-                    try {
-                        sensorDataRepository.save(data);
-                        sendToKafka(data);
-                        redisTemplate.delete(key);
-
-                        log.info("Processed data from Redis: deviceId={}, timestamp={}",
-                                data.getDeviceId(), data.getTimestamp());
-                    } catch (Exception e) {
-                        log.error("Error processing data from Redis: {}", e.getMessage(), e);
+        try {
+            Set<String> keys = sensorDataRedisTemplate.keys("device:*:latest");
+            log.info("Found Redis keys: {}", keys);
+            
+            if (keys != null && !keys.isEmpty()) {
+                for (String key : keys) {
+                    SensorData data = sensorDataRedisTemplate.opsForValue().get(key);
+                    if (data != null) {
+                        log.info("Processing Redis data for key: {}", key);
+                        
+                        // MySQL 저장 시도
+                        try {
+                            sensorDataRepository.save(data);
+                            log.info("Successfully saved to MySQL for device: {}", data.getDeviceId());
+                        } catch (Exception e) {
+                            log.error("Failed to save to MySQL for device {}: {}", 
+                                data.getDeviceId(), e.getMessage(), e);
+                            continue; // MySQL 저장 실패시 다음 데이터로 진행
+                        }
+                        
+                        // Kafka 전송 시도
+                        try {
+                            sendToKafka(data);
+                            log.info("Successfully sent to Kafka for device: {}", data.getDeviceId());
+                        } catch (Exception e) {
+                            log.error("Failed to send to Kafka for device {}: {}", 
+                                data.getDeviceId(), e.getMessage(), e);
+                            // Kafka 실패는 무시하고 계속 진행
+                        }
+                        
+                        // 처리 완료된 데이터는 Redis에서 삭제
+                        try {
+                            sensorDataRedisTemplate.delete(key);
+                            log.info("Successfully deleted from Redis: {}", key);
+                        } catch (Exception e) {
+                            log.error("Failed to delete from Redis: {}", key, e);
+                        }
                     }
                 }
+            } else {
+                log.debug("No keys found in Redis");
             }
+        } catch (Exception e) {
+            log.error("Error in processRedisData: {}", e.getMessage(), e);
         }
     }
 
@@ -95,12 +119,12 @@ public class SensorDataService {
 
         try {
             // Redis에 저장 (만료시간 24시간)
-            boolean result = Boolean.TRUE.equals(redisTemplate.opsForValue()
+            boolean result = Boolean.TRUE.equals(sensorDataRedisTemplate.opsForValue()
                     .setIfAbsent(redisKey, data, 24, TimeUnit.HOURS));
 
             // latest 키도 함께 업데이트
             String latestKey = String.format("device:%s:latest", deviceId);
-            redisTemplate.opsForValue()
+            sensorDataRedisTemplate.opsForValue()
                     .set(latestKey, data, 24, TimeUnit.HOURS);
 
             if (result) {
@@ -114,23 +138,22 @@ public class SensorDataService {
     private void sendToKafka(SensorData sensorData) {
         try {
             Message<SensorData> message = MessageBuilder
-                    .withPayload(sensorData)
-                    .setHeader(KafkaHeaders.TOPIC, topicName)
-                    .setHeader(KafkaHeaders.KEY, sensorData.getDeviceId())
-                    .build();
+                .withPayload(sensorData)
+                .setHeader(KafkaHeaders.TOPIC, topicName)
+                .setHeader(KafkaHeaders.KEY, sensorData.getDeviceId())
+                .build();
 
             kafkaTemplate.send(message)
-                    .whenComplete((result, ex) -> {
-                        if (ex == null) {
-                            log.info("Sent sensor data to Kafka: deviceId={}", sensorData.getDeviceId());
-                        } else {
-                            log.error("Failed to send sensor data to Kafka for deviceId={}",
-                                    sensorData.getDeviceId(), ex);
-                        }
-                    });
+                .whenComplete((result, ex) -> {
+                    if (ex == null) {
+                        log.info("Sent to Kafka: {}", sensorData.getDeviceId());
+                    } else {
+                        log.error("Kafka send failed: {}", ex.getMessage());
+                    }
+                });
         } catch (Exception e) {
-            log.error("Kafka send failed", e);
-            // Kafka 실패는 무시하고 계속 진행
+            log.error("Error sending to Kafka", e);
+            throw e;
         }
     }
 
@@ -168,7 +191,7 @@ public class SensorDataService {
 
     public SensorData getLatestSensorData(String deviceId) {
         String redisKey = "device:" + deviceId + ":latest";
-        SensorData data = redisTemplate.opsForValue().get(redisKey);
+        SensorData data = sensorDataRedisTemplate.opsForValue().get(redisKey);
 
         if (data == null) {
             // Redis에 없으면 DB에서 조회

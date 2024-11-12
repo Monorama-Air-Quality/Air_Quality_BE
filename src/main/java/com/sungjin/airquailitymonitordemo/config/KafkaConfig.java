@@ -1,6 +1,5 @@
 package com.sungjin.airquailitymonitordemo.config;
 
-import com.sungjin.airquailitymonitordemo.entity.DeviceStatus;
 import com.sungjin.airquailitymonitordemo.entity.SensorData;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -32,19 +31,5 @@ public class KafkaConfig {
     @Bean
     public KafkaTemplate<String, SensorData> sensorDataKafkaTemplate() {
         return new KafkaTemplate<>(sensorDataProducerFactory());
-    }
-
-    @Bean
-    public ProducerFactory<String, DeviceStatus> deviceStatusProducerFactory() {
-        Map<String, Object> config = new HashMap<>();
-        config.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        config.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-        config.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
-        return new DefaultKafkaProducerFactory<>(config);
-    }
-
-    @Bean
-    public KafkaTemplate<String, DeviceStatus> deviceStatusKafkaTemplate() {
-        return new KafkaTemplate<>(deviceStatusProducerFactory());
     }
 } 
