@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.sungjin.airquailitymonitordemo.entity.DeviceStatus;
 import com.sungjin.airquailitymonitordemo.entity.SensorData;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,7 +17,6 @@ import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.LocalDateTime;
@@ -118,26 +116,6 @@ public class RedisConfig {
             log.error("Redis test failed", e);
         }
 
-        return template;
-    }
-
-    @Bean
-    public RedisTemplate<String, DeviceStatus> deviceStatusRedisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, DeviceStatus> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-
-        // 키 직렬화
-        StringRedisSerializer stringSerializer = new StringRedisSerializer();
-        template.setKeySerializer(stringSerializer);
-        template.setHashKeySerializer(stringSerializer);
-
-        // 값 직렬화
-        GenericJackson2JsonRedisSerializer jsonSerializer =
-                new GenericJackson2JsonRedisSerializer(redisObjectMapper());
-        template.setValueSerializer(jsonSerializer);
-        template.setHashValueSerializer(jsonSerializer);
-
-        template.afterPropertiesSet();
         return template;
     }
 
