@@ -40,49 +40,49 @@ public class SensorDataService {
     @Scheduled(fixedRate = 5000)
     public void processRedisData() {
         try {
-            Set<String> keys = sensorDataRedisTemplate.keys("device:*:latest");
-            log.info("Found Redis keys: {}", keys);
-            
+            log.info("Starting scheduled process at: {}", LocalDateTime.now());
+
+            // 1. 일반 데이터 키 패턴으로 변경
+            Set<String> keys = sensorDataRedisTemplate.keys("device:*:data:*");
+            log.info("Found {} Redis keys", keys != null ? keys.size() : 0);
+
             if (keys != null && !keys.isEmpty()) {
+                int processedCount = 0;
+
                 for (String key : keys) {
                     SensorData data = sensorDataRedisTemplate.opsForValue().get(key);
                     if (data != null) {
-                        log.info("Processing Redis data for key: {}", key);
-                        
-                        // MySQL 저장 시도
+                        // MySQL 저장
                         try {
                             sensorDataRepository.save(data);
-                            log.info("Successfully saved to MySQL for device: {}", data.getDeviceId());
+                            processedCount++;
+                            log.info("Saved to MySQL - Device: {}, Time: {}",
+                                    data.getDeviceId(), data.getTimestamp());
                         } catch (Exception e) {
-                            log.error("Failed to save to MySQL for device {}: {}", 
-                                data.getDeviceId(), e.getMessage(), e);
-                            continue; // MySQL 저장 실패시 다음 데이터로 진행
+                            log.error("MySQL save failed - Device: {}, Error: {}",
+                                    data.getDeviceId(), e.getMessage());
+                            continue;
                         }
-                        
-                        // Kafka 전송 시도
+
+                        // Kafka 전송
                         try {
                             sendToKafka(data);
-                            log.info("Successfully sent to Kafka for device: {}", data.getDeviceId());
                         } catch (Exception e) {
-                            log.error("Failed to send to Kafka for device {}: {}", 
-                                data.getDeviceId(), e.getMessage(), e);
-                            // Kafka 실패는 무시하고 계속 진행
+                            log.warn("Kafka send failed - Device: {}", data.getDeviceId());
+
+                            continue;
                         }
-                        
-                        // 처리 완료된 데이터는 Redis에서 삭제
-                        try {
-                            sensorDataRedisTemplate.delete(key);
-                            log.info("Successfully deleted from Redis: {}", key);
-                        } catch (Exception e) {
-                            log.error("Failed to delete from Redis: {}", key, e);
-                        }
+
+                        // Redis에서 삭제
+                        sensorDataRedisTemplate.delete(key);
                     }
                 }
-            } else {
-                log.debug("No keys found in Redis");
+
+                log.info("Processed {} records at {}", processedCount, LocalDateTime.now());
             }
+
         } catch (Exception e) {
-            log.error("Error in processRedisData: {}", e.getMessage(), e);
+            log.error("Error in scheduled process: {}", e.getMessage(), e);
         }
     }
 
@@ -116,23 +116,25 @@ public class SensorDataService {
             return;
         }
 
-        // 타임스탬프를 키에 포함시켜 모든 데이터 보존
-        String redisKey = String.format("device:%s:%s", deviceId,
-                data.getTimestamp().toString());
-
         try {
-            // Redis에 저장 (만료시간 24시간)
-            boolean result = Boolean.TRUE.equals(sensorDataRedisTemplate.opsForValue()
-                    .setIfAbsent(redisKey, data, 24, TimeUnit.HOURS));
+            // 1. 모든 데이터용 키 (타임스탬프 포함)
+            String dataKey = String.format("device:%s:data:%s",
+                    deviceId, data.getTimestamp().toString());
 
-            // latest 키도 함께 업데이트
+            // 2. 최신 데이터용 키
             String latestKey = String.format("device:%s:latest", deviceId);
+
+            // 일반 데이터는 5초 동안만 보관
+            sensorDataRedisTemplate.opsForValue()
+                    .set(dataKey, data, 5, TimeUnit.SECONDS);
+
+            // latest 데이터는 24시간 보관
             sensorDataRedisTemplate.opsForValue()
                     .set(latestKey, data, 24, TimeUnit.HOURS);
 
-            if (result) {
-                log.info("Successfully cached sensor data for device: {}", deviceId);
-            }
+            log.info("Cached sensor data - Device: {}, Time: {}",
+                    deviceId, data.getTimestamp());
+
         } catch (Exception e) {
             log.error("Error caching sensor data for device: {}", deviceId, e);
         }
