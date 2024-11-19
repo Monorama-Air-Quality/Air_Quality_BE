@@ -2,7 +2,9 @@ package com.sungjin.airquailitymonitordemo.dto.request;
 
 public record SensorDataSearchRequestDto(
         Location location,
-        DateRange dateRange
+        DateRange dateRange,
+
+        String apiKey
 ) {
     public boolean hasValidCriteria() {
         return location.isValid() &&
