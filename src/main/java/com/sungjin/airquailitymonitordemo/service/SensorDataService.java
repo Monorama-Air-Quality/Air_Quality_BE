@@ -1,7 +1,10 @@
 package com.sungjin.airquailitymonitordemo.service;
 
+import com.sungjin.airquailitymonitordemo.dto.request.SensorDataSearchRequestDto;
+import com.sungjin.airquailitymonitordemo.dto.response.SensorDataResponseDto;
 import com.sungjin.airquailitymonitordemo.entity.SensorData;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataRequestDto;
+import com.sungjin.airquailitymonitordemo.exception.InvalidSearchCriteriaException;
 import com.sungjin.airquailitymonitordemo.repository.SensorDataRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,7 +87,7 @@ public class SensorDataService {
     }
 
     /**
-     * 센서 데이터 처리
+     * 센서 데이터 처리 (cache redis)
      * @param requestDto 센서 데이터 요청 DTO
      * @return 센서 데이터
      */
@@ -179,16 +182,6 @@ public class SensorDataService {
                 .build();
     }
 
-    public Page<SensorData> getDeviceHistory(
-            String deviceId,
-            LocalDateTime start,
-            LocalDateTime end,
-            PageRequest pageRequest
-    ) {
-        return sensorDataRepository.findByDeviceIdAndTimestampBetween(
-                deviceId, start, end, pageRequest);
-    }
-
     public SensorData getLatestSensorData(String deviceId) {
         String redisKey = "device:" + deviceId + ":latest";
         SensorData data = sensorDataRedisTemplate.opsForValue().get(redisKey);
@@ -205,5 +198,66 @@ public class SensorDataService {
         }
 
         return data;
+    }
+
+    public Page<SensorDataResponseDto> searchSensorData(
+            SensorDataSearchRequestDto searchRequest,
+            PageRequest pageRequest
+    ) {
+        validateSearchCriteria(searchRequest);
+
+        LocalDateTime startDateTime = null;
+        LocalDateTime endDateTime = null;
+
+        if (searchRequest.dateRange().exists()) {
+            startDateTime = searchRequest.dateRange().startDate().atStartOfDay();
+            endDateTime = searchRequest.dateRange().endDate().atTime(23, 59, 59);
+        }
+
+        Double latStart = null;
+        Double latEnd = null;
+        Double longStart = null;
+        Double longEnd = null;
+
+        if (searchRequest.location().exists()) {
+            latStart = searchRequest.location().getLatitudeStart();
+            latEnd = searchRequest.location().getLatitudeEnd();
+            longStart = searchRequest.location().getLongitudeStart();
+            longEnd = searchRequest.location().getLongitudeEnd();
+        }
+
+        Page<SensorData> sensorDataPage = sensorDataRepository.findBySearchCriteria(
+                latStart,
+                latEnd,
+                longStart,
+                longEnd,
+                startDateTime,
+                endDateTime,
+                pageRequest
+        );
+
+        return sensorDataPage.map(SensorDataResponseDto::fromEntity);
+    }
+
+    private void validateSearchCriteria(SensorDataSearchRequestDto searchRequest) {
+        if (!searchRequest.hasValidCriteria()) {
+            throw new InvalidSearchCriteriaException("Invalid search criteria provided");
+        }
+
+        if (!searchRequest.location().isValid()) {
+            throw new InvalidSearchCriteriaException("Both latitude and longitude must be provided together");
+        }
+
+        if (!searchRequest.dateRange().isValid()) {
+            throw new InvalidSearchCriteriaException("Both start date and end date must be provided together");
+        }
+
+        if (!searchRequest.dateRange().isValidRange()) {
+            throw new InvalidSearchCriteriaException("Start date must be before end date");
+        }
+
+        if (!searchRequest.location().exists() && !searchRequest.dateRange().exists()) {
+            throw new InvalidSearchCriteriaException("At least one search criteria (location or date) must be provided");
+        }
     }
 }
