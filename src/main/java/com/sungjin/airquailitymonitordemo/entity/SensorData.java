@@ -11,6 +11,7 @@ import com.sungjin.airquailitymonitordemo.utils.ByteArrayJsonSerializer;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -24,6 +25,7 @@ import java.time.LocalDateTime;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.ANY)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SensorData implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     @Id
@@ -31,6 +33,10 @@ public class SensorData implements Serializable {
     private Long id;
 
     private String deviceId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     @Column(columnDefinition = "TIMESTAMP")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
