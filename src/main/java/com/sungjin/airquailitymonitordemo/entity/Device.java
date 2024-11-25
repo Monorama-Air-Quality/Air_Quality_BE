@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Device {
     @Id
-    private String deviceId;  // sensor_data의 device_id와 매핑
+    private String deviceId;
 
     @Column(length = 50)
     private String placeType;
@@ -26,6 +26,16 @@ public class Device {
 
     @Column
     private String description;
+
+    @Column
+    private String userName;
+
+    @Column
+    private String userEmail;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

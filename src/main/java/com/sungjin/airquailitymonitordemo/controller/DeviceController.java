@@ -1,6 +1,9 @@
 package com.sungjin.airquailitymonitordemo.controller;
 
+import com.sungjin.airquailitymonitordemo.dto.request.DeviceRegistrationRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataSearchRequestDto;
+import com.sungjin.airquailitymonitordemo.dto.response.DeviceRegistrationResponseDto;
+import com.sungjin.airquailitymonitordemo.dto.response.DeviceResponseDto;
 import com.sungjin.airquailitymonitordemo.dto.response.SensorDataResponseDto;
 import com.sungjin.airquailitymonitordemo.entity.SensorData;
 import com.sungjin.airquailitymonitordemo.service.DeviceService;
@@ -22,6 +25,7 @@ public class DeviceController {
 
     private final SensorDataService sensorDataService;
     private final DeviceService deviceService;
+
 
     @GetMapping("/{deviceId}/latest")
     public ResponseEntity<SensorData> getLatestData(
@@ -52,5 +56,29 @@ public class DeviceController {
 
         Page<SensorDataResponseDto> result = sensorDataService.searchSensorData(searchRequest, pageRequest);
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/{deviceId}")
+    public ResponseEntity<DeviceResponseDto> getDevice(@PathVariable String deviceId) {
+        try {
+            DeviceResponseDto device = deviceService.getDevice(deviceId);
+            return ResponseEntity.ok(device);
+        } catch (Exception e) {
+            log.error("Error getting device info", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/{deviceId}/register")
+    public ResponseEntity<DeviceRegistrationResponseDto> registerDevice(
+            @PathVariable String deviceId,
+            @RequestBody DeviceRegistrationRequestDto request) {
+        try {
+            DeviceRegistrationResponseDto response = deviceService.registerDevice(deviceId, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error registering device", e);
+            return ResponseEntity.ok(new DeviceRegistrationResponseDto(false, e.getMessage()));
+        }
     }
 }

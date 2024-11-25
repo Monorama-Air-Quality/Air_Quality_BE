@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -22,6 +23,12 @@ public class Project implements Serializable {
     private Long projectId;
 
     private String projectName;
+
+    @Column
+    private String description;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<SensorData> sensorDataList;
