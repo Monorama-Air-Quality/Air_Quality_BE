@@ -1,5 +1,8 @@
 package com.sungjin.airquailitymonitordemo.dto.request;
 
+import com.sungjin.airquailitymonitordemo.dto.DateRange;
+import com.sungjin.airquailitymonitordemo.dto.Location;
+
 public record SensorDataSearchRequestDto(
         Location location,
         DateRange dateRange,

@@ -1,4 +1,4 @@
-package com.sungjin.airquailitymonitordemo.dto.request;
+package com.sungjin.airquailitymonitordemo.dto;
 
 public record Location(
         Integer latitude,  // Integer로 변경
