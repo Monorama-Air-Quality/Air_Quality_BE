@@ -11,7 +11,8 @@ import lombok.Builder;
 @Builder
 public record SensorDataRequestDto(
     String deviceId,
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    Long projectId,
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "Asia/Seoul")
     LocalDateTime timestamp,
     Double pm25Value,
     Integer pm25Level,
