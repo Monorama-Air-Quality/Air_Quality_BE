@@ -10,7 +10,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.Builder;
 
 @Builder
-@JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 public record SensorDataRequestDto(
         String deviceId,
         Long projectId,

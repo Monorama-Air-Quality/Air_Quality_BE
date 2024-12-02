@@ -1,5 +1,8 @@
 package com.sungjin.airquailitymonitordemo.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataSearchRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.response.SensorDataResponseDto;
 import com.sungjin.airquailitymonitordemo.entity.Project;
@@ -23,8 +26,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +45,7 @@ public class SensorDataService {
     private final SensorDataRepository sensorDataRepository;
     private final KafkaTemplate<String, SensorData> kafkaTemplate;
     private final ProjectRepository projectRepository;
+    private final ObjectMapper objectMapper;
 
 
     @Value("${kafka.topic.sensor-data}")
@@ -273,7 +280,48 @@ public class SensorDataService {
 
 
 
-    public int processBatchData(List<SensorDataRequestDto> dataList) {
+    @Transactional
+    public int processBatchData(String rawData) throws JsonProcessingException {
+        try {
+            JsonNode arrayNode = objectMapper.readTree(rawData);
+            if (!arrayNode.isArray()) {
+                throw new IllegalArgumentException("Expected JSON array");
+            }
+
+            List<SensorDataRequestDto> dataList = new ArrayList<>();
+
+            for (JsonNode payload : arrayNode) {
+                JsonNode data = payload.get("data");
+                if (data == null) {
+                    throw new IllegalArgumentException("Missing 'data' field in payload");
+                }
+
+                String deviceId = payload.get("deviceId").asText();
+                Long projectId = payload.get("projectId").asLong();
+
+                LocalDateTime timestamp = Instant.parse(payload.get("timestamp").asText())
+                        .atZone(ZoneId.of("Asia/Seoul"))
+                        .toLocalDateTime();
+
+                Double latitude = payload.has("latitude") ? payload.get("latitude").asDouble() : null;
+                Double longitude = payload.has("longitude") ? payload.get("longitude").asDouble() : null;
+
+                SensorDataRequestDto sensorDataDto = buildSensorDataDto(
+                        deviceId, projectId, timestamp, data, latitude, longitude
+                );
+
+                dataList.add(sensorDataDto);
+            }
+
+            return saveBatchData(dataList);  // 메서드 이름 변경
+        } catch (Exception e) {
+            log.error("Error processing batch data", e);
+            throw e;
+        }
+    }
+
+    @Transactional
+    public int saveBatchData(List<SensorDataRequestDto> dataList) {  // 기존 processBatchData 메서드 이름 변경
         List<SensorData> sensorDataList = new ArrayList<>();
 
         for (SensorDataRequestDto dto : dataList) {
@@ -305,6 +353,7 @@ public class SensorDataService {
                 sensorDataList.add(sensorData);
             } catch (Exception e) {
                 log.error("Error processing sensor data entry: {}", dto, e);
+                throw e;  // 예외를 상위로 전파
             }
         }
 
@@ -314,6 +363,44 @@ public class SensorDataService {
 
         return sensorDataList.size();
     }
+
+    private SensorDataRequestDto buildSensorDataDto(
+            String deviceId, Long projectId, LocalDateTime timestamp,
+            JsonNode data, Double latitude, Double longitude) {
+        return SensorDataRequestDto.builder()
+                .deviceId(deviceId)
+                .projectId(projectId)
+                .timestamp(timestamp)
+                .pm25Value(data.get("pm25").get("value").asDouble())
+                .pm25Level(data.get("pm25").get("level").asInt())
+                .pm10Value(data.get("pm10").get("value").asDouble())
+                .pm10Level(data.get("pm10").get("level").asInt())
+                .temperature(data.get("temperature").get("value").asDouble())
+                .temperatureLevel(data.get("temperature").get("level").asInt())
+                .humidity(data.get("humidity").get("value").asDouble())
+                .humidityLevel(data.get("humidity").get("level").asInt())
+                .co2Value(data.get("co2").get("value").asDouble())
+                .co2Level(data.get("co2").get("level").asInt())
+                .vocValue(data.get("voc").get("value").asDouble())
+                .vocLevel(data.get("voc").get("level").asInt())
+                .latitude(latitude)
+                .longitude(longitude)
+                .rawData(data.has("_raw") ? convertRawData(data.get("_raw")) : null)
+                .build();
+    }
+
+    private byte[] convertRawData(JsonNode rawArray) {
+        if (rawArray == null || !rawArray.isArray()) {
+            return new byte[0];
+        }
+
+        byte[] rawData = new byte[rawArray.size()];
+        for (int i = 0; i < rawArray.size(); i++) {
+            rawData[i] = (byte) rawArray.get(i).asInt();
+        }
+        return rawData;
+    }
+
 
     public Page<SensorDataResponseDto> getDeviceSensorHistory(
             String deviceId,
