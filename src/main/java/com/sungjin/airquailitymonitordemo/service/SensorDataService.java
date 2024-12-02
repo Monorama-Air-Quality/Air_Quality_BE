@@ -2,12 +2,16 @@ package com.sungjin.airquailitymonitordemo.service;
 
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataSearchRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.response.SensorDataResponseDto;
+import com.sungjin.airquailitymonitordemo.entity.Project;
 import com.sungjin.airquailitymonitordemo.entity.SensorData;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataRequestDto;
 import com.sungjin.airquailitymonitordemo.exception.InvalidSearchCriteriaException;
+import com.sungjin.airquailitymonitordemo.repository.ProjectRepository;
 import com.sungjin.airquailitymonitordemo.repository.SensorDataRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
@@ -18,8 +22,11 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.Set;
 
@@ -31,6 +38,7 @@ public class SensorDataService {
     private final RedisTemplate<String, SensorData> sensorDataRedisTemplate;
     private final SensorDataRepository sensorDataRepository;
     private final KafkaTemplate<String, SensorData> kafkaTemplate;
+    private final ProjectRepository projectRepository;
 
 
     @Value("${kafka.topic.sensor-data}")
@@ -261,5 +269,73 @@ public class SensorDataService {
         if (!searchRequest.location().exists() && !searchRequest.dateRange().exists()) {
             throw new InvalidSearchCriteriaException("At least one search criteria (location or date) must be provided");
         }
+    }
+
+
+
+    public int processBatchData(List<SensorDataRequestDto> dataList) {
+        List<SensorData> sensorDataList = new ArrayList<>();
+
+        for (SensorDataRequestDto dto : dataList) {
+            try {
+                Project project = projectRepository.findById(dto.projectId())
+                        .orElseThrow(() -> new EntityNotFoundException("Project not found: " + dto.projectId()));
+
+                SensorData sensorData = SensorData.builder()
+                        .deviceId(dto.deviceId())
+                        .project(project)
+                        .timestamp(dto.timestamp())
+                        .pm25Value(dto.pm25Value())
+                        .pm25Level(dto.pm25Level())
+                        .pm10Value(dto.pm10Value())
+                        .pm10Level(dto.pm10Level())
+                        .temperature(dto.temperature())
+                        .temperatureLevel(dto.temperatureLevel())
+                        .humidity(dto.humidity())
+                        .humidityLevel(dto.humidityLevel())
+                        .co2Value(dto.co2Value())
+                        .co2Level(dto.co2Level())
+                        .vocValue(dto.vocValue())
+                        .vocLevel(dto.vocLevel())
+                        .latitude(dto.latitude())
+                        .longitude(dto.longitude())
+                        .rawData(dto.rawData())
+                        .build();
+
+                sensorDataList.add(sensorData);
+            } catch (Exception e) {
+                log.error("Error processing sensor data entry: {}", dto, e);
+            }
+        }
+
+        if (!sensorDataList.isEmpty()) {
+            sensorDataRepository.saveAll(sensorDataList);
+        }
+
+        return sensorDataList.size();
+    }
+
+    public Page<SensorDataResponseDto> getDeviceSensorHistory(
+            String deviceId,
+            LocalDateTime startDate,
+            LocalDateTime endDate,
+            PageRequest pageRequest) {
+
+        Specification<SensorData> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("deviceId"), deviceId));
+
+            if (startDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("timestamp"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("timestamp"), endDate));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return sensorDataRepository.findAll(spec, pageRequest)
+                .map(SensorDataResponseDto::fromEntity);
     }
 }

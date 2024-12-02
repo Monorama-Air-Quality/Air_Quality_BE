@@ -85,7 +85,7 @@ public class DeviceController {
     }
 
     @PutMapping("/{deviceId}/location")
-    public ResponseEntity<DeviceLocationResponseDto> updateDeviceLocation(
+    public ResponseEntity<DeviceLocationResponseDto> updateDeviceLocationInfo(
             @PathVariable String deviceId,
             @RequestBody DeviceLocationRequestDto request) {
         log.info("Received location update request for device {}: {}", deviceId, request);
@@ -99,7 +99,7 @@ public class DeviceController {
     }
 
     @GetMapping("/{deviceId}/location")
-    public ResponseEntity<DeviceLocationResponseDto> getDeviceLocation(
+    public ResponseEntity<DeviceLocationResponseDto> getDeviceLocationInfo(
             @PathVariable String deviceId) {
         log.info("Received location request for device: {}", deviceId);
         try {
