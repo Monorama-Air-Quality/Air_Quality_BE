@@ -5,6 +5,7 @@ import com.sungjin.airquailitymonitordemo.dto.response.ProjectResponseDto;
 import com.sungjin.airquailitymonitordemo.entity.Project;
 import com.sungjin.airquailitymonitordemo.exception.ServiceException;
 import com.sungjin.airquailitymonitordemo.repository.ProjectRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,5 +40,12 @@ public class ProjectService {
                 project.getDescription(),
                 project.getCreatedAt()
         );
+    }
+
+    public ProjectResponseDto getProjectByDeviceId(String deviceId) {
+        Project project = projectRepository.findByDevicesDeviceId(deviceId)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found for device ID: " + deviceId));
+
+        return convertToDto(project);
     }
 }

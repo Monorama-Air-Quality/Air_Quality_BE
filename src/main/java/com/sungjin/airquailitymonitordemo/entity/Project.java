@@ -32,4 +32,7 @@ public class Project implements Serializable {
 
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL)
     private List<SensorData> sensorDataList;
+
+    @OneToMany(mappedBy = "project")
+    private List<Device> devices;
 }
