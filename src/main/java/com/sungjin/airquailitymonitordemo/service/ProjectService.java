@@ -1,5 +1,6 @@
 package com.sungjin.airquailitymonitordemo.service;
 
+import com.sungjin.airquailitymonitordemo.dto.request.ProjectEditRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.response.ProjectListResponseDto;
 import com.sungjin.airquailitymonitordemo.dto.response.ProjectResponseDto;
 import com.sungjin.airquailitymonitordemo.entity.Project;
@@ -47,5 +48,16 @@ public class ProjectService {
                 .orElseThrow(() -> new EntityNotFoundException("Project not found for device ID: " + deviceId));
 
         return convertToDto(project);
+    }
+
+    public ProjectResponseDto updateProject(Long projectId, ProjectEditRequestDto request) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new EntityNotFoundException("Project not found with ID: " + projectId));
+
+        project.setProjectName(request.projectName());
+        project.setDescription(request.description());
+
+        Project updatedProject = projectRepository.save(project);
+        return convertToDto(updatedProject);
     }
 }

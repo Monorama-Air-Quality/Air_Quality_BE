@@ -1,5 +1,6 @@
 package com.sungjin.airquailitymonitordemo.controller;
 
+import com.sungjin.airquailitymonitordemo.dto.request.ProjectEditRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.response.ProjectListResponseDto;
 import com.sungjin.airquailitymonitordemo.dto.response.ProjectResponseDto;
 import com.sungjin.airquailitymonitordemo.service.ProjectService;
@@ -40,6 +41,23 @@ public class ProjectController {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             log.error("Error in getProjectByDeviceId: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PutMapping("/{projectId}")
+    public ResponseEntity<ProjectResponseDto> updateProject(
+            @PathVariable Long projectId,
+            @RequestBody ProjectEditRequestDto request
+    ) {
+        try {
+            ProjectResponseDto response = projectService.updateProject(projectId, request);
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.error("Project not found with ID: {}", projectId, e);
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            log.error("Error updating project with ID {}: ", projectId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
