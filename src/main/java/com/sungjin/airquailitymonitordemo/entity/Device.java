@@ -1,5 +1,6 @@
 package com.sungjin.airquailitymonitordemo.entity;
 
+import com.sungjin.airquailitymonitordemo.dto.TransmissionMode;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -42,6 +43,10 @@ public class Device {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transmission_mode")
+    private TransmissionMode transmissionMode = TransmissionMode.REALTIME;
 
     @PrePersist
     protected void onCreate() {

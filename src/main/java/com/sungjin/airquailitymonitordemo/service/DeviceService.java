@@ -48,6 +48,7 @@ public class DeviceService {
         );
     }
 
+
     @Transactional
     public DeviceRegistrationResponseDto registerDevice(String deviceId, DeviceRegistrationRequestDto request) {
         log.info("Processing device registration/update for ID: {}", deviceId);
@@ -64,6 +65,7 @@ public class DeviceService {
                         existingDevice.setUserName(request.userName());
                         existingDevice.setUserEmail(request.userEmail());
                         existingDevice.setProject(project);
+                        existingDevice.setTransmissionMode(request.transmissionMode());
                         return existingDevice;
                     })
                     .orElseGet(() -> {
@@ -73,6 +75,7 @@ public class DeviceService {
                                 .userName(request.userName())
                                 .userEmail(request.userEmail())
                                 .project(project)
+                                .transmissionMode(request.transmissionMode())
                                 .build();
                     });
 
