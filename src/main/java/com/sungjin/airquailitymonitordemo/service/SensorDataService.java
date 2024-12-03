@@ -178,9 +178,19 @@ public class SensorDataService {
     }
 
     private SensorData convertToEntity(SensorDataRequestDto dto) {
+        // Project 조회
+        Project project = projectRepository.findById(dto.projectId())
+                .orElseThrow(() -> new EntityNotFoundException("Project not found: " + dto.projectId()));
+
+        LocalDateTime timestamp = dto.timestamp()
+                .atZone(ZoneId.of("UTC"))
+                .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
+                .toLocalDateTime();
+
         return SensorData.builder()
                 .deviceId(dto.deviceId())
-                .timestamp(dto.timestamp())
+                .project(project)
+                .timestamp(timestamp)
                 .pm25Value(dto.pm25Value())
                 .pm25Level(dto.pm25Level())
                 .pm10Value(dto.pm10Value())
