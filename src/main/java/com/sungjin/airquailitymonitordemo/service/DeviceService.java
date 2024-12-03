@@ -44,7 +44,10 @@ public class DeviceService {
                 device.getUserName(),
                 device.getUserEmail(),
                 device.getProject() != null ? device.getProject().getProjectId() : null,
-                locationDto
+                locationDto,
+                device.getCreatedAt(),
+                device.getUpdatedAt(),
+                device.getTransmissionMode()
         );
     }
 
