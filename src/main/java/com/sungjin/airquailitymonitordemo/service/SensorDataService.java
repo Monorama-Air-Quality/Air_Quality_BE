@@ -109,6 +109,8 @@ public class SensorDataService {
     public SensorData processSensorData(SensorDataRequestDto requestDto) {
         SensorData sensorData = convertToEntity(requestDto);
 
+        log.info("timestamp: {}", sensorData.getTimestamp());
+
         // Redis에만 캐시
         try {
             cacheLatestData(sensorData);
@@ -178,10 +180,7 @@ public class SensorDataService {
     }
 
     private SensorData convertToEntity(SensorDataRequestDto dto) {
-        LocalDateTime timestamp = dto.timestamp()
-                .atZone(ZoneId.of("UTC"))
-                .withZoneSameInstant(ZoneId.of("Asia/Seoul"))
-                .toLocalDateTime();
+        log.info("Converting to entity: {}", dto);
 
         return SensorData.builder()
                 .deviceId(dto.deviceId())
