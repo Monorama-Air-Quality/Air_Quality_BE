@@ -185,7 +185,7 @@ public class SensorDataService {
 
         return SensorData.builder()
                 .deviceId(dto.deviceId())
-                .timestamp(timestamp)
+                .timestamp(dto.timestamp())
                 .pm25Value(dto.pm25Value())
                 .pm25Level(dto.pm25Level())
                 .pm10Value(dto.pm10Value())
@@ -312,7 +312,7 @@ public class SensorDataService {
                 Double longitude = payload.has("longitude") ? payload.get("longitude").asDouble() : null;
 
                 SensorDataRequestDto sensorDataDto = buildSensorDataDto(
-                        deviceId, projectId, timestamp, data, latitude, longitude
+                        deviceId, projectId, LocalDateTime.parse(payload.get("timestamp").asText()), data, latitude, longitude
                 );
 
                 dataList.add(sensorDataDto);
