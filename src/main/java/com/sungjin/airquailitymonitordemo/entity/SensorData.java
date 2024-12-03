@@ -39,8 +39,8 @@ public class SensorData implements Serializable {
     private Project project;
 
     @Column(columnDefinition = "TIMESTAMP")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
-    private LocalDateTime timestamp;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "Asia/Seoul")
+    LocalDateTime timestamp;
 
     private Double pm25Value;
     private Integer pm25Level;
