@@ -296,6 +296,7 @@ public class SensorDataService {
 
             for (JsonNode payload : arrayNode) {
                 JsonNode data = payload.get("data");
+                JsonNode location = payload.get("location");
                 if (data == null) {
                     throw new IllegalArgumentException("Missing 'data' field in payload");
                 }
@@ -310,8 +311,8 @@ public class SensorDataService {
 //                        .atZone(ZoneId.of("Asia/Seoul"))
 //                        .toLocalDateTime();
 
-                Double latitude = payload.has("latitude") ? payload.get("latitude").asDouble() : null;
-                Double longitude = payload.has("longitude") ? payload.get("longitude").asDouble() : null;
+                Double latitude = location != null && location.has("latitude") ? location.get("latitude").asDouble() : null;
+                Double longitude = location != null && location.has("longitude") ? location.get("longitude").asDouble() : null;
 
                 SensorDataRequestDto sensorDataDto = buildSensorDataDto(
                         deviceId, projectId, timestamp, data, latitude, longitude
