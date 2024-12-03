@@ -1,6 +1,5 @@
 package com.sungjin.airquailitymonitordemo.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +14,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@JsonIgnoreProperties({"sensorDataList", "devices"})
 public class Project implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
