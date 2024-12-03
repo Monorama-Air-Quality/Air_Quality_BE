@@ -303,15 +303,18 @@ public class SensorDataService {
                 String deviceId = payload.get("deviceId").asText();
                 Long projectId = payload.get("projectId").asLong();
 
-                LocalDateTime timestamp = Instant.parse(payload.get("timestamp").asText())
-                        .atZone(ZoneId.of("Asia/Seoul"))
-                        .toLocalDateTime();
+
+                String timestampStr = payload.get("timestamp").asText();
+                LocalDateTime timestamp = LocalDateTime.parse(timestampStr.replace("Z", ""));
+//                LocalDateTime timestamp = Instant.parse(payload.get("timestamp").asText())
+//                        .atZone(ZoneId.of("Asia/Seoul"))
+//                        .toLocalDateTime();
 
                 Double latitude = payload.has("latitude") ? payload.get("latitude").asDouble() : null;
                 Double longitude = payload.has("longitude") ? payload.get("longitude").asDouble() : null;
 
                 SensorDataRequestDto sensorDataDto = buildSensorDataDto(
-                        deviceId, projectId, LocalDateTime.parse(payload.get("timestamp").asText()), data, latitude, longitude
+                        deviceId, projectId, timestamp, data, latitude, longitude
                 );
 
                 dataList.add(sensorDataDto);
