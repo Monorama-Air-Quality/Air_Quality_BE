@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 @Slf4j
@@ -65,6 +66,7 @@ public class ProjectService {
         Project project = new Project();
         project.setProjectName(request.projectName());
         project.setDescription(request.description());
+        project.setCreatedAt(LocalDateTime.now());
 
         Project savedProject = projectRepository.save(project);
         return convertToDto(savedProject);
