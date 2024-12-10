@@ -1,0 +1,39 @@
+package com.sungjin.airquailitymonitordemo.dto.request.HealthData;
+
+import com.sungjin.airquailitymonitordemo.entity.HealthData;
+
+public record MeasurementsRequestDto(
+    Double stepCount,
+    Double heartRate,
+    Double bloodPressureSystolic,
+    Double bloodPressureDiastolic,
+    Double oxygenSaturation,
+    Double bodyTemperature,
+    Double respiratoryRate,
+    Double height,
+    Double weight,
+    Double runningSpeed,
+    Double activeEnergy,
+    Double basalEnergy,
+    Double latitude,
+    Double longitude
+) {
+    public HealthData toEntity() {
+        return HealthData.builder()
+                .stepCount(stepCount)
+                .heartRate(heartRate)
+                .bloodPressureSystolic(bloodPressureSystolic)
+                .bloodPressureDiastolic(bloodPressureDiastolic)
+                .oxygenSaturation(oxygenSaturation)
+                .bodyTemperature(bodyTemperature)
+                .respiratoryRate(respiratoryRate)
+                .height(height)
+                .bodyMass(weight)
+                .runningSpeed(runningSpeed)
+                .activeEnergyBurned(activeEnergy)
+                .basalEnergyBurned(basalEnergy)
+                .latitude(latitude)
+                .longitude(longitude)
+                .build();
+    }
+}
