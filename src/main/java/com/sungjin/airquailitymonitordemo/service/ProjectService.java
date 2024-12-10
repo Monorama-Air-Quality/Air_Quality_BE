@@ -60,4 +60,13 @@ public class ProjectService {
         Project updatedProject = projectRepository.save(project);
         return convertToDto(updatedProject);
     }
+
+    public ProjectResponseDto registerProject(ProjectEditRequestDto request) {
+        Project project = new Project();
+        project.setProjectName(request.projectName());
+        project.setDescription(request.description());
+
+        Project savedProject = projectRepository.save(project);
+        return convertToDto(savedProject);
+    }
 }

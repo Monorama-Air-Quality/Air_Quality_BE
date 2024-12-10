@@ -61,4 +61,15 @@ public class ProjectController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
+    @PostMapping("/register")
+    public ResponseEntity<ProjectResponseDto> registerProject(@RequestBody ProjectEditRequestDto request) {
+        try {
+            ProjectResponseDto response = projectService.registerProject(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error in registerProject: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
