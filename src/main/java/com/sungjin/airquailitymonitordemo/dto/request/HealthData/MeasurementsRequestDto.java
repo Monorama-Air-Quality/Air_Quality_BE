@@ -1,6 +1,7 @@
 package com.sungjin.airquailitymonitordemo.dto.request.HealthData;
 
 import com.sungjin.airquailitymonitordemo.entity.HealthData;
+import com.sungjin.airquailitymonitordemo.entity.HealthUser;
 
 public record MeasurementsRequestDto(
     Double stepCount,
@@ -18,7 +19,7 @@ public record MeasurementsRequestDto(
     Double latitude,
     Double longitude
 ) {
-    public HealthData toEntity() {
+    public HealthData toEntity(HealthUser healthUser) {
         return HealthData.builder()
                 .stepCount(stepCount)
                 .heartRate(heartRate)
@@ -34,6 +35,7 @@ public record MeasurementsRequestDto(
                 .basalEnergyBurned(basalEnergy)
                 .latitude(latitude)
                 .longitude(longitude)
+                .healthUser(healthUser)
                 .build();
     }
 }

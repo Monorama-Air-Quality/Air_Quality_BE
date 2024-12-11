@@ -32,6 +32,9 @@ public class HealthUser {
     private Provider provider;
 
     @Column
+    private LocalDate birthDate;
+
+    @Column
     @Enumerated(EnumType.STRING)
     private BloodType bloodType;
 
@@ -39,9 +42,9 @@ public class HealthUser {
     @Enumerated(EnumType.STRING)
     private Gender biologicalSex;
 
-    @Column
-    private LocalDate birthDate;
-
     @OneToMany(mappedBy = "healthUser")
     private List<HealthData> healthDataList;
+
+    @OneToMany(mappedBy = "healthUser")
+    private List<Project> projects;
 }
