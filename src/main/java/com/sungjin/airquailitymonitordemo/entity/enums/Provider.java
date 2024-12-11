@@ -11,10 +11,6 @@ public enum Provider {
         this.provider = provider;
     }
 
-    public String getProvider() {
-        return provider;
-    }
-
     public static Provider toProvider(String provider) {
         try {
             return Provider.valueOf(provider.toUpperCase());
