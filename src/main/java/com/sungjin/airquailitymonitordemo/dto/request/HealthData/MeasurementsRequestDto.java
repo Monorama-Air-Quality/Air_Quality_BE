@@ -1,5 +1,7 @@
 package com.sungjin.airquailitymonitordemo.dto.request.HealthData;
 
+import java.time.LocalDateTime;
+
 import com.sungjin.airquailitymonitordemo.entity.HealthData;
 import com.sungjin.airquailitymonitordemo.entity.HealthUser;
 
@@ -36,6 +38,7 @@ public record MeasurementsRequestDto(
                 .latitude(latitude)
                 .longitude(longitude)
                 .healthUser(healthUser)
+                .createdAt(LocalDateTime.now())
                 .build();
     }
 }
