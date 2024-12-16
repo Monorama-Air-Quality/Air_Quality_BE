@@ -7,5 +7,6 @@ public record DeviceRegistrationRequestDto(
         Long projectId,
         String userName,
         String userEmail,
-        TransmissionMode transmissionMode
+        TransmissionMode transmissionMode,
+        Integer uploadInterval
 ) {}
