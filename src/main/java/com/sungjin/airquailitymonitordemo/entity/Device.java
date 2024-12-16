@@ -48,6 +48,9 @@ public class Device {
     @Column(name = "transmission_mode")
     private TransmissionMode transmissionMode = TransmissionMode.REALTIME;
 
+    @Column(name = "upload_interval")
+    private Integer uploadInterval; // 추가된 필드
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -58,4 +61,4 @@ public class Device {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-} 
+}
