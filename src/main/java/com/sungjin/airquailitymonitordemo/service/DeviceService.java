@@ -70,6 +70,7 @@ public class DeviceService {
                         existingDevice.setUserEmail(request.userEmail());
                         existingDevice.setProject(project);
                         existingDevice.setTransmissionMode(request.transmissionMode());
+                        existingDevice.setUploadInterval(request.uploadInterval());
                         return existingDevice;
                     })
                     .orElseGet(() -> {
@@ -80,6 +81,7 @@ public class DeviceService {
                                 .userEmail(request.userEmail())
                                 .project(project)
                                 .transmissionMode(request.transmissionMode())
+                                .uploadInterval(request.uploadInterval())
                                 .build();
                     });
 
