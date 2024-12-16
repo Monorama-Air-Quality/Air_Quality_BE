@@ -47,7 +47,8 @@ public class DeviceService {
                 locationDto,
                 device.getCreatedAt(),
                 device.getUpdatedAt(),
-                device.getTransmissionMode()
+                device.getTransmissionMode(),
+                device.getUploadInterval()
         );
     }
 

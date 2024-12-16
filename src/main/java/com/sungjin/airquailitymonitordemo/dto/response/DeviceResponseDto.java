@@ -13,5 +13,6 @@ public record DeviceResponseDto(
         DeviceLocationDto location,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        TransmissionMode transmissionMode
+        TransmissionMode transmissionMode,
+        Integer uploadInterval
 ) {}
