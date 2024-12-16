@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataRequestDto;
 import com.sungjin.airquailitymonitordemo.dto.request.SensorDataSearchRequestDto;
-import com.sungjin.airquailitymonitordemo.dto.response.SensorDataBatchResponseDto;
+import com.sungjin.airquailitymonitordemo.dto.response.SensorDataUploadResponseDto;
 import com.sungjin.airquailitymonitordemo.dto.response.SensorDataResponseDto;
 import com.sungjin.airquailitymonitordemo.service.SensorDataService;
 import jakarta.persistence.EntityNotFoundException;
@@ -17,12 +17,9 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -76,25 +73,51 @@ public class SensorDataController {
     }
 
     @PostMapping("/batch")
-    public ResponseEntity<SensorDataBatchResponseDto> uploadBatchData(@RequestBody String rawData) {
+    public ResponseEntity<SensorDataUploadResponseDto> uploadBatchData(@RequestBody String rawData) {
         log.info("Received raw batch sensor data upload request");
         try {
             int processedCount = sensorDataService.processBatchData(rawData);
-            return ResponseEntity.ok(new SensorDataBatchResponseDto(
+            return ResponseEntity.ok(new SensorDataUploadResponseDto(
                     true,
                     String.format("Successfully processed %d sensor data entries", processedCount),
                     processedCount
             ));
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new SensorDataBatchResponseDto(false, e.getMessage(), 0));
+                    .body(new SensorDataUploadResponseDto(false, e.getMessage(), 0));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new SensorDataBatchResponseDto(false, e.getMessage(), 0));
+                    .body(new SensorDataUploadResponseDto(false, e.getMessage(), 0));
         } catch (Exception e) {
             log.error("Error processing batch sensor data", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new SensorDataBatchResponseDto(false, "Internal server error", 0));
+                    .body(new SensorDataUploadResponseDto(false, "Internal server error", 0));
+        }
+    }
+
+    @PostMapping("/upload-csv")
+    public ResponseEntity<SensorDataUploadResponseDto> uploadCsv(@RequestParam("file") MultipartFile file) {
+        log.info("Received CSV upload request");
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body(new SensorDataUploadResponseDto(
+                    false, "File is empty", 0
+            ));
+        }
+
+        try {
+            // 파일 처리 및 저장 로직 호출
+            int processedCount = sensorDataService.processCsvFile(file);
+            return ResponseEntity.ok(new SensorDataUploadResponseDto(
+                    true,
+                    String.format("Successfully processed %d sensor data entries", processedCount),
+                    processedCount
+            ));
+        } catch (Exception e) {
+            log.error("Error processing CSV file", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new SensorDataUploadResponseDto(
+                    false, "Internal server error", 0
+            ));
         }
     }
 
