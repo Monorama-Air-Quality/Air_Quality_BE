@@ -35,4 +35,8 @@ public class Project implements Serializable {
 
     @OneToMany(mappedBy = "project")
     private List<Device> devices;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "health_user_id")
+    private HealthUser healthUser;
 }
