@@ -45,21 +45,6 @@ public class DeviceController {
         }
     }
 
-    @PostMapping("/search")
-    public ResponseEntity<Page<SensorDataResponseDto>> searchSensorData(
-            @RequestBody SensorDataSearchRequestDto searchRequest,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "timestamp,desc") String[] sort
-    ) {
-        Sort.Direction direction = sort[1].equalsIgnoreCase("desc") ?
-                Sort.Direction.DESC : Sort.Direction.ASC;
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(direction, sort[0]));
-
-        Page<SensorDataResponseDto> result = sensorDataService.searchSensorData(searchRequest, pageRequest);
-        return ResponseEntity.ok(result);
-    }
-
     @GetMapping("/{deviceId}")
     public ResponseEntity<DeviceResponseDto> getDevice(@PathVariable String deviceId) {
         try {

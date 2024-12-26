@@ -27,14 +27,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Instant;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.Set;
 
 @Service
 @Slf4j
@@ -432,5 +434,95 @@ public class SensorDataService {
 
         return sensorDataRepository.findAll(spec, pageRequest)
                 .map(SensorDataResponseDto::fromEntity);
+    }
+
+    public int processCsvFile(MultipartFile file) throws IOException {
+        List<SensorDataRequestDto> sensorDataList = parseCsvFile(file);
+
+        // Convert DTOs to Entities
+        List<SensorData> entities = sensorDataList.stream()
+                .map(this::convertToEntityFile)
+                .toList();
+
+        sensorDataRepository.saveAll(entities);
+        return entities.size();
+    }
+
+    private List<SensorDataRequestDto> parseCsvFile(MultipartFile file) throws IOException {
+        List<SensorDataRequestDto> dataList = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            String headerLine = reader.readLine(); // Read header line
+            if (headerLine == null || headerLine.isEmpty()) {
+                throw new IllegalArgumentException("CSV file is empty or invalid");
+            }
+
+            String[] headers = headerLine.split(",");
+            Map<String, Integer> headerIndexMap = new HashMap<>();
+            for (int i = 0; i < headers.length; i++) {
+                headerIndexMap.put(headers[i].trim(), i);
+            }
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] columns = line.split(",");
+                if (columns.length < 17) { // Validate column count
+                    log.warn("Invalid CSV line: {}", line);
+                    continue;
+                }
+
+                try {
+                    SensorDataRequestDto dto = SensorDataRequestDto.builder()
+                            .timestamp(OffsetDateTime.parse(columns[headerIndexMap.get("timestamp")]).toLocalDateTime())
+                            .deviceId(columns[headerIndexMap.get("deviceId")])
+                            .projectId(Long.parseLong(columns[headerIndexMap.get("projectId")]))
+                            .pm25Value(Double.parseDouble(columns[headerIndexMap.get("pm25Value")]))
+                            .pm25Level(Integer.parseInt(columns[headerIndexMap.get("pm25Level")]))
+                            .pm10Value(Double.parseDouble(columns[headerIndexMap.get("pm10Value")]))
+                            .pm10Level(Integer.parseInt(columns[headerIndexMap.get("pm10Level")]))
+                            .temperature(Double.parseDouble(columns[headerIndexMap.get("temperature")]))
+                            .temperatureLevel(Integer.parseInt(columns[headerIndexMap.get("temperatureLevel")]))
+                            .humidity(Double.parseDouble(columns[headerIndexMap.get("humidity")]))
+                            .humidityLevel(Integer.parseInt(columns[headerIndexMap.get("humidityLevel")]))
+                            .co2Value(Double.parseDouble(columns[headerIndexMap.get("co2Value")]))
+                            .co2Level(Integer.parseInt(columns[headerIndexMap.get("co2Level")]))
+                            .vocValue(Double.parseDouble(columns[headerIndexMap.get("vocValue")]))
+                            .vocLevel(Integer.parseInt(columns[headerIndexMap.get("vocLevel")]))
+                            .latitude(Double.parseDouble(columns[headerIndexMap.get("latitude")]))
+                            .longitude(Double.parseDouble(columns[headerIndexMap.get("longitude")]))
+                            .rawData(line.getBytes(StandardCharsets.UTF_8)) // Save raw line for debugging
+                            .build();
+
+                    dataList.add(dto);
+                } catch (Exception e) {
+                    log.warn("Failed to parse CSV line: {}", line, e);
+                }
+            }
+        }
+
+        return dataList;
+    }
+
+    private SensorData convertToEntityFile(SensorDataRequestDto dto) {
+        return SensorData.builder()
+                .timestamp(dto.timestamp())
+                .deviceId(dto.deviceId())
+                .project(Project.builder().projectId(dto.projectId()).build()) // projectId를 기준으로 참조 생성
+                .pm25Value(dto.pm25Value())
+                .pm25Level(dto.pm25Level())
+                .pm10Value(dto.pm10Value())
+                .pm10Level(dto.pm10Level())
+                .temperature(dto.temperature())
+                .temperatureLevel(dto.temperatureLevel())
+                .humidity(dto.humidity())
+                .humidityLevel(dto.humidityLevel())
+                .co2Value(dto.co2Value())
+                .co2Level(dto.co2Level())
+                .vocValue(dto.vocValue())
+                .vocLevel(dto.vocLevel())
+                .latitude(dto.latitude())
+                .longitude(dto.longitude())
+                .rawData(dto.rawData())
+                .build();
     }
 }

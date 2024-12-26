@@ -47,7 +47,8 @@ public class DeviceService {
                 locationDto,
                 device.getCreatedAt(),
                 device.getUpdatedAt(),
-                device.getTransmissionMode()
+                device.getTransmissionMode(),
+                device.getUploadInterval()
         );
     }
 
@@ -69,6 +70,7 @@ public class DeviceService {
                         existingDevice.setUserEmail(request.userEmail());
                         existingDevice.setProject(project);
                         existingDevice.setTransmissionMode(request.transmissionMode());
+                        existingDevice.setUploadInterval(request.uploadInterval());
                         return existingDevice;
                     })
                     .orElseGet(() -> {
@@ -79,6 +81,7 @@ public class DeviceService {
                                 .userEmail(request.userEmail())
                                 .project(project)
                                 .transmissionMode(request.transmissionMode())
+                                .uploadInterval(request.uploadInterval())
                                 .build();
                     });
 
