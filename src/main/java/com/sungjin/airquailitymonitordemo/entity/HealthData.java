@@ -70,4 +70,8 @@ public class HealthData {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "health_user_id")
     private HealthUser healthUser;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id")
+    private Project project;
 }
