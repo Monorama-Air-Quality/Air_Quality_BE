@@ -9,6 +9,7 @@ import com.sungjin.airquailitymonitordemo.entity.enums.Gender;
 
 public record HealthUserInfoRequestDto(
         String email,
+        Long projectId,
         String provider,
         String birthDate,
         String bloodType,

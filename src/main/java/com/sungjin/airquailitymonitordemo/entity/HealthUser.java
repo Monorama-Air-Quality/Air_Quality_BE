@@ -46,5 +46,5 @@ public class HealthUser {
     private List<HealthData> healthDataList;
 
     @OneToMany(mappedBy = "healthUser")
-    private List<Project> projects;
+    private List<UserProject> userProjects;
 }
