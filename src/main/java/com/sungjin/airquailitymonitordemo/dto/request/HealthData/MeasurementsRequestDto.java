@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import com.sungjin.airquailitymonitordemo.entity.HealthData;
 import com.sungjin.airquailitymonitordemo.entity.HealthUser;
+import com.sungjin.airquailitymonitordemo.entity.Project;
 
 public record MeasurementsRequestDto(
     Double stepCount,
@@ -21,7 +22,7 @@ public record MeasurementsRequestDto(
     Double latitude,
     Double longitude
 ) {
-    public HealthData toEntity(HealthUser healthUser) {
+    public HealthData toEntity(HealthUser healthUser, Project project) {
         return HealthData.builder()
                 .stepCount(stepCount)
                 .heartRate(heartRate)
@@ -38,6 +39,7 @@ public record MeasurementsRequestDto(
                 .latitude(latitude)
                 .longitude(longitude)
                 .healthUser(healthUser)
+                .project(project)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
